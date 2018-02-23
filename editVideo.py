@@ -7,10 +7,14 @@ if __name__ == "__main__":
 		print("Usage : python a.py [file] [starting point] [end point]")
 		exit(1)
 	else: #argument parsing; video file name, starting and end point for making video clip
-		fileName = sys.argv[1]
-		outFileName = "out_" + fileName
-		startingPoint = int(sys.argv[2])
-		endPoint = int(sys.argv[3])
+		try:
+			fileName = sys.argv[1]
+			outFileName = "out_" + fileName
+			startingPoint = int(sys.argv[2])
+			endPoint = int(sys.argv[3])
+		except:
+			print("Arguments are not enough.")
+			exit(1)
 
 	# Read original video and get information of original video
 	video = cv2.VideoCapture(fileName) # Read video from hdd
@@ -18,20 +22,26 @@ if __name__ == "__main__":
 	video_height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT)) # video height
 	video_fps = video.get(cv2.CAP_PROP_FPS) # fps
 
-	for _ in range(startingPoint): # frame skipping until the starting point
-		ret, img = video.read(0)
+	print("video width : %d, video_height : %d, video_fps : %d" % (video_width, video_height, video_fps))
+
+	for _ in range(startingPoint*int(video_fps)): # frame skipping until the starting point
+		ret, frame = video.read()
 		if ret == False:
 			print("Done")
 			break
 
-	fourcc = cv2.VideoWriter_fourcc(*'XVID') # Encode with XVID codec
-	out = cv2.VideoWriter(outFileName, fourcc, video_fps, (video_height, video_width)) # video writer for making video clip
+	fourcc = cv2.VideoWriter_fourcc(*'MJPG') # Encode with XVID codec
+	out = cv2.VideoWriter(outFileName, fourcc, video_fps, (video_width, video_height)) # video writer for making video clip
 
-	for _ in range(endPoint):
-		ret, img = video.read(0) # read information from original video
+	for i in range(endPoint*int(video_fps)):
+		ret, frame = video.read() # read information from original video
 		if ret == False : # if original video is shorter than end point.
 			print("Done")
 			break
-		out.write(img) # make new video clip
+		out.write(frame)
+		cv2.imshow('frame', frame)
+		if cv2.waitKey(1) & 0xFF==ord('q'):
+			break
 	
+	out.release()
 	print("Done")
