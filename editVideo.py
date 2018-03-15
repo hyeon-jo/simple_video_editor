@@ -6,8 +6,9 @@ import zipfile
 
 def VideoProcessing(fileName, startingPoint, endPoint, numbering):
 	# Read original video and get information of original video
+	endFile = 0
 	outFileName = os.getcwd() + "/output/" + "out_" + str(numbering) + ".avi"
-	video = cv2.VideoCapture(sys.argv[1] +'/' +fileName) # Read video from hdd
+	video = cv2.VideoCapture(fileName) # Read video from hdd
 	if video.isOpened() != True:
 		print("Error to open video")
 		print(fileName)
@@ -17,29 +18,47 @@ def VideoProcessing(fileName, startingPoint, endPoint, numbering):
 	video_fps = video.get(cv2.CAP_PROP_FPS) # fps
 
 	print("video width : %d, video_height : %d, video_fps : %d" % (video_width, video_height, video_fps))
-
-	for _ in range(startingPoint*int(video_fps)): # frame skipping until the starting point
-		ret, frame = video.read()
-		if ret == False:
-			print("Error : Starting point value is bigger than video length")
-			break
-
 	fourcc = cv2.VideoWriter_fourcc(*'XVID') # Encode with XVID codec
-	print(outFileName)
-	out = cv2.VideoWriter(outFileName, fourcc, video_fps, (video_width, video_height)) # video writer for making video clip
 
-	for i in range(endPoint*int(video_fps)):
-		ret, frame = video.read() # read information from original video
-		if ret == False : # if original video is shorter than end point.
-			print("End of this video.")
-			break
-		out.write(frame)
+	if endPoint != 0:
+		for _ in range(startingPoint*int(video_fps)): # frame skipping until the starting point
+			ret, frame = video.read()
+			if ret == False:
+				print("Error : Starting point value is bigger than video length")
+				break
+
+		print(outFileName)
+		out = cv2.VideoWriter(outFileName, fourcc, video_fps, (video_width, video_height)) # video writer for making video clip
+
+		for i in range(endPoint*int(video_fps)):
+			ret, frame = video.read() # read information from original video
+			if ret == False : # if original video is shorter than end point.
+				print("End of this video.")
+				endFile = 1
+				break
+			out.write(frame)
+	else:
+		i = 0
+		while(True):
+			outFileName = os.getcwd() + "/output/" + "out_" + str(i) + ".avi"
+			out = cv2.VideoWriter(outFileName, fourcc, video_fps, (video_width, video_height)) # video writer for making video clip
+			for _ in range(startingPoint*int(video_fps)):
+				ret, frame = video.read()
+				if ret == False:
+					print("End of this video.")
+					endFile = 1
+					return endFile
+				out.write(frame)
+			out.release()
+			print("Save out_" + str(i) + ".avi sucessfully")
+			i += 1
 #		cv2.imshow('frame', frame)
 #		if cv2.waitKey(1) & 0xFF==ord('q'):
 #			break
 	
 	out.release()
 	print("Done")
+	return endFile
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
@@ -47,19 +66,30 @@ if __name__ == "__main__":
 	parser.add_argument("start")
 	parser.add_argument("finish")
 	args = parser.parse_args()
+	if(os.path.isdir("output") == 0):
+		os.system("mkdir output")
+		print("Making output directory is complete.")
 
-	print(args.file)
+	if(os.path.isdir("done") == 0):
+		os.system("mkdir done")
+		print("Making done directory is complete.")
+	start = 0
+	finish = 0
+	jump = None
+
 	flag = 0
-	prevSubFolder = None
+	start = int(args.start)
+	finish = int(args.finish)
 	for root, subFolders, files in os.walk(args.file):
 		if root == "./done" or root == "./output" or root == "./":
 			continue
 		i = 0
 		for file in files:
 			filepath = os.path.join(root, file)
+			print(filepath)
 			if os.path.isfile(filepath) and filepath[-3:] != 'zip':
 				print("Now cutting " + file)
-				VideoProcessing(filepath, int(args.start), int(args.finish), i)
+				VideoProcessing(filepath, start, finish, i)
 				flag = 1
 				i += 1
 		rootsplit = root.split('/')
